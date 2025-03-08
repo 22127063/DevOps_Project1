@@ -25,6 +25,24 @@ pipeline {
                 }
             }
         }
+
+        stage('Check Coverage') {
+            steps {
+                script {
+                    def services = env.TRIGGERED_SERVICES.split(',')
+                    for (service in services) {
+                        dir(service) {
+                            sh './mvnw verify'
+                            def coverage = sh(script: "grep -oP '(?<=<line-rate>).*?(?=</line-rate>)' target/site/jacoco/jacoco.xml", returnStdout: true).trim().toFloat()
+                            
+                            if (coverage < 0.7) {
+                                error("Test coverage too low: ${coverage * 100}%")
+                            }
+                        }
+                    }
+                }
+            }
+        }
         
         stage('Test & Build') {
             steps {
